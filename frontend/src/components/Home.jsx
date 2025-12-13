@@ -29,10 +29,14 @@ const Home = () => {
         withCredentials: true,
         headers: { "Content-Type": "application/json" },
       });
+      console.log("Todos fetched:", response.data);
       setTodos(response.data);
       setError(null);
     } catch (err) {
-      setError("Failed to fetch todos");
+      console.error("Error fetching todos:", err);
+      setError(
+        err.response?.data?.message || err.message || "Failed to fetch todos"
+      );
     } finally {
       setLoading(false);
     }
@@ -54,11 +58,15 @@ const Home = () => {
         },
         { withCredentials: true }
       );
+      console.log("Todo created:", response.data);
       setTodos([...todos, response.data]);
       setNewTodo("");
       setError(null);
     } catch (err) {
-      setError("Failed to create todo");
+      console.error("Error creating todo:", err);
+      setError(
+        err.response?.data?.message || err.message || "Failed to create todo"
+      );
     }
   };
 

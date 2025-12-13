@@ -42,13 +42,17 @@ const Login = () => {
         { withCredentials: true }
       );
 
+      console.log("Login response:", response.data);
       if (response.data) {
         localStorage.setItem("token", response.data.token);
         localStorage.setItem("user", JSON.stringify(response.data.user));
         navigate("/");
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed. Try again.");
+      console.error("Login error:", err);
+      setError(
+        err.response?.data?.message || err.message || "Login failed. Try again."
+      );
     } finally {
       setLoading(false);
     }

@@ -38,7 +38,12 @@ export const register= async(req,res)=>{
         await newUser.save()
         if(newUser){
            const token= await generateTokenAndSaveCookie(newUser._id ,res);
-            res.status(201).json({message:"User registered successfully",newUser,token});
+            const userResponse = {
+                _id: newUser._id,
+                username: newUser.username,
+                email: newUser.email
+            };
+            res.status(201).json({message:"User registered successfully",newUser:userResponse,token});
         }
         
 
@@ -63,8 +68,12 @@ export const login=async(req,res)=>{
         }
 
         const token= await generateTokenAndSaveCookie(user._id ,res);
-
-        res.status(200).json({message:"Login successful",user,token});
+        const userResponse = {
+            _id: user._id,
+            username: user.username,
+            email: user.email
+        };
+        res.status(200).json({message:"Login successful",user:userResponse,token});
 
         
     }catch(error){

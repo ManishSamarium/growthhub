@@ -2,6 +2,7 @@ import Todo from "../model/todo.model.js";
 
 export const createTodo=async(req, res)=>{
     const todo=new Todo({
+        userId: req.userId,
         text:req.body.text,
         completed:req.body.completed
 })
@@ -19,7 +20,7 @@ try{
 
 export const getTodos=async(req, res)=>{
     try{
-        const todos=await Todo.find();
+        const todos=await Todo.find({ userId: req.userId });
         res.status(200).json(todos);
     } catch(error){
         console.log(error);
@@ -30,8 +31,16 @@ export const getTodos=async(req, res)=>{
 
 export const updateTodo=async(req, res)=>{
     try{
-        const todo=await Todo.findByIdAndUpdate(req.params.id, req.body, {new:true});
-        res.status(200).json(todo);
+        const {id} = req.params;
+        const todo = await Todo.findById(id);
+        
+        // Check if the todo belongs to the authenticated user
+        if (todo.userId.toString() !== req.userId) {
+            return res.status(403).json({message:"Unauthorized to update this todo"});
+        }
+        
+        const updatedTodo = await Todo.findByIdAndUpdate(id, req.body, {new:true});
+        res.status(200).json(updatedTodo);
 
     } catch(error){
         console.log(error);
@@ -41,7 +50,15 @@ export const updateTodo=async(req, res)=>{
 
 export const deleteTodo=async(req, res)=>{
     try{
-        await Todo.findByIdAndDelete(req.params.id);
+        const {id} = req.params;
+        const todo = await Todo.findById(id);
+        
+        // Check if the todo belongs to the authenticated user
+        if (todo.userId.toString() !== req.userId) {
+            return res.status(403).json({message:"Unauthorized to delete this todo"});
+        }
+        
+        await Todo.findByIdAndDelete(id);
         res.status(200).json({message:"todo deleted successfully"});
         
     } catch(error){
