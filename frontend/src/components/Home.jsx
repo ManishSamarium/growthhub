@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../api/axios";
 import { useNavigate } from "react-router-dom";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4001";
 
 const Home = () => {
   const [todos, setTodos] = useState([]);
@@ -25,10 +23,7 @@ const Home = () => {
   const fetchTodos = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/todo/fetch`, {
-        withCredentials: true,
-        headers: { "Content-Type": "application/json" },
-      });
+      const response = await axios.get(`/todo/fetch`);
       console.log("Todos fetched:", response.data);
       setTodos(response.data);
       setError(null);
@@ -51,12 +46,11 @@ const Home = () => {
 
     try {
       const response = await axios.post(
-        `${API_URL}/todo/create`,
+        `/todo/create`,
         {
           text: newTodo,
           completed: false,
-        },
-        { withCredentials: true }
+        }
       );
       console.log("Todo created:", response.data);
       setTodos([...todos, response.data]);
@@ -73,9 +67,8 @@ const Home = () => {
   const handleToggleTodo = async (id, completed) => {
     try {
       const response = await axios.put(
-        `${API_URL}/todo/update/${id}`,
-        { completed: !completed },
-        { withCredentials: true }
+        `/todo/update/${id}`,
+        { completed: !completed }
       );
       setTodos(todos.map((todo) => (todo._id === id ? response.data : todo)));
     } catch (err) {
@@ -85,9 +78,7 @@ const Home = () => {
 
   const handleDeleteTodo = async (id) => {
     try {
-      await axios.delete(`${API_URL}/todo/delete/${id}`, {
-        withCredentials: true,
-      });
+      await axios.delete(`/todo/delete/${id}`);
       setTodos(todos.filter((todo) => todo._id !== id));
     } catch (err) {
       setError("Failed to delete todo");
