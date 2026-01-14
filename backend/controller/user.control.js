@@ -24,7 +24,7 @@ export const register= async(req,res)=>{
 
         const user= await User.findOne({email:email});
         if(user){
-            return res.status(400).json({message:"User already registerd"});
+            return res.status(400).json({message:"User already registered"});
         }
 
 
@@ -51,7 +51,7 @@ export const register= async(req,res)=>{
 
 
     }catch(error){
-        console.log(error);
+        console.error('Register error stack:', error.stack || error);
         res.status(500).json({message:"Internal server error"});
     }
 };
@@ -77,7 +77,7 @@ export const login=async(req,res)=>{
 
         
     }catch(error){
-        console.log(error);
+        console.error('Login error stack:', error.stack || error);
         res.status(500).json({message:"Internal server error"});
 
     }

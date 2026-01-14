@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import axios from "axios";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4001";
+import axios from "../api/axios";
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -34,12 +32,11 @@ const Login = () => {
     try {
       setLoading(true);
       const response = await axios.post(
-        `${API_URL}/user/login`,
+        `/user/login`,
         {
           email: formData.email,
           password: formData.password,
-        },
-        { withCredentials: true }
+        }
       );
 
       console.log("Login response:", response.data);
@@ -50,33 +47,40 @@ const Login = () => {
       }
     } catch (err) {
       console.error("Login error:", err);
-      setError(
-        err.response?.data?.message || err.message || "Login failed. Try again."
-      );
+      const errorMsg = err.response?.data?.message || err.message || "Login failed. Try again.";
+      
+      // Enhance common error messages
+      if (errorMsg.includes("Invalid credentials")) {
+        setError("Invalid email or password. Please check your credentials and try again.");
+      } else if (errorMsg.includes("Network Error")) {
+        setError("Cannot connect to server. Please ensure backend is running on port 4001.");
+      } else {
+        setError(errorMsg);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-500 via-blue-500 to-purple-600 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+      <div className="bg-gray-800 border border-gray-700 rounded-2xl shadow-2xl p-8 w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">
+          <h1 className="text-4xl font-bold text-white mb-2">
             Welcome Back
           </h1>
-          <p className="text-gray-600">Sign in to your account</p>
+          <p className="text-gray-300">Sign in to your account</p>
         </div>
 
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
+          <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg mb-4">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-gray-700 font-semibold mb-2">
+            <label className="block text-gray-200 font-semibold mb-2">
               Email
             </label>
             <input
@@ -85,12 +89,12 @@ const Login = () => {
               value={formData.email}
               onChange={handleChange}
               placeholder="Enter your email"
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-green-500 transition"
+              className="w-full px-4 py-3 bg-gray-700 border-2 border-gray-600 text-white rounded-lg focus:outline-none focus:border-purple-500 transition placeholder-gray-400"
             />
           </div>
 
           <div>
-            <label className="block text-gray-700 font-semibold mb-2">
+            <label className="block text-gray-200 font-semibold mb-2">
               Password
             </label>
             <input
@@ -99,25 +103,25 @@ const Login = () => {
               value={formData.password}
               onChange={handleChange}
               placeholder="Enter your password"
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-green-500 transition"
+              className="w-full px-4 py-3 bg-gray-700 border-2 border-gray-600 text-white rounded-lg focus:outline-none focus:border-purple-500 transition placeholder-gray-400"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-green-500 to-blue-600 text-white font-bold py-3 rounded-lg hover:shadow-lg transition disabled:opacity-50"
+            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-3 rounded-lg hover:shadow-lg transition disabled:opacity-50"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
 
         <div className="text-center mt-6">
-          <p className="text-gray-600">
+          <p className="text-gray-300">
             Don't have an account?{" "}
             <Link
               to="/signup"
-              className="text-green-600 font-bold hover:underline"
+              className="text-purple-400 font-bold hover:underline"
             >
               Sign up here
             </Link>

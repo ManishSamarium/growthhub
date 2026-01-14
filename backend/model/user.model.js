@@ -17,9 +17,25 @@ const userSchema= new mongoose.Schema({
     },
     token: {
         type: String,
+    },
+    preferences: {
+        theme: {
+            type: String,
+            enum: ['light', 'dark'],
+            default: 'light'
+        },
+        defaultCategory: {
+            type: String,
+            enum: ['work', 'personal', 'health', 'other'],
+            default: 'other'
+        }
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now
     }
     
 });
 
-const   User = mongoose.model('User', userSchema);
+const User = mongoose.model('User', userSchema);
 export default User;
