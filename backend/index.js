@@ -25,21 +25,32 @@ app.use(express.json());
 app.use(cookieParser());
 
 // CORS configuration
+// Allow configuring allowed origins via environment variable `ALLOWED_ORIGINS`
+// Example: ALLOWED_ORIGINS="http://localhost:5173,https://your-frontend.vercel.app"
+const rawAllowed = process.env.ALLOWED_ORIGINS || 'http://localhost:5173';
+const allowedOrigins = rawAllowed.split(',').map((s) => s.trim()).filter(Boolean);
+
 const corsOptions = {
     origin: function (origin, callback) {
-        // Allow requests from localhost with any port during development
-        if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
+        // If no origin (e.g. same-origin requests or server-to-server) allow it
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
         }
+
+        console.warn('Blocked by CORS:', origin);
+        return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    optionsSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
+// Ensure preflight responses include credentials and allowed origin
+app.options('*', cors(corsOptions));
 // DATABASE CONNECTION CODE
 try {
     if (DB_URI.startsWith('mongodb+srv://')) {
