@@ -49,9 +49,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-// Ensure preflight responses include credentials and allowed origin
-// Use '/*' instead of '*' to avoid path-to-regexp errors in some environments
-app.options('/*', cors(corsOptions));
 // DATABASE CONNECTION CODE
 try {
     if (DB_URI.startsWith('mongodb+srv://')) {
