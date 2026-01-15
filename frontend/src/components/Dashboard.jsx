@@ -135,7 +135,7 @@ const Dashboard = () => {
 
             {/* Theme Toggle & Logout */}
             <div className="absolute bottom-6 left-4 right-4 space-y-3">
-              <motion.button
+              {/* <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => { if (theme !== 'dark') dispatch(toggleTheme()); }}
@@ -148,7 +148,7 @@ const Dashboard = () => {
               >
                 {theme === 'dark' ? <FiSun className="w-5 h-5" /> : <FiMoon className="w-5 h-5" />}
                 <span className="font-medium">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
-              </motion.button>
+              </motion.button> */}
 
               <motion.button
                 whileHover={{ scale: 1.02 }}
