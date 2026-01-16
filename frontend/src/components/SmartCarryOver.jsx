@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiAlertCircle, FiCalendar, FiCheck, FiX } from 'react-icons/fi';
@@ -6,7 +6,7 @@ import { format, isYesterday, isBefore, startOfDay } from 'date-fns';
 import { fetchTasks, updateTask } from '../store/taskSlice';
 import { addNotification } from '../store/uiSlice';
 
-const SmartCarryOver = () => {
+const SmartCarryOver = React.memo(() => {
   const dispatch = useDispatch();
   const { items: tasks } = useSelector((state) => state.tasks);
   const { theme } = useSelector((state) => state.ui);
@@ -14,10 +14,11 @@ const SmartCarryOver = () => {
   const [showModal, setShowModal] = useState(false);
   const [processing, setProcessing] = useState(false);
 
-  // Check for pending tasks from previous days
+  // Check for pending tasks from previous days (only uncompleted)
   useEffect(() => {
     const checkPendingTasks = () => {
       const today = startOfDay(new Date());
+      // Only show uncompleted tasks
       const pending = tasks.filter(task => {
         if (task.completed || !task.dueDate) return false;
         
@@ -27,7 +28,7 @@ const SmartCarryOver = () => {
 
       setPendingTasks(pending);
       
-      // Show modal if there are pending tasks
+      // Show modal if there are pending uncompleted tasks
       if (pending.length > 0) {
         setShowModal(true);
       }
@@ -38,7 +39,7 @@ const SmartCarryOver = () => {
     }
   }, [tasks]);
 
-  const handleMoveToToday = async (taskId) => {
+  const handleMoveToToday = useCallback(async (taskId) => {
     setProcessing(true);
     try {
       await dispatch(
@@ -70,9 +71,9 @@ const SmartCarryOver = () => {
     } finally {
       setProcessing(false);
     }
-  };
+  }, [dispatch]);
 
-  const handleMoveAllToToday = async () => {
+  const handleMoveAllToToday = useCallback(async () => {
     setProcessing(true);
     try {
       const promises = pendingTasks.map(task =>
@@ -108,19 +109,19 @@ const SmartCarryOver = () => {
     } finally {
       setProcessing(false);
     }
-  };
+  }, [dispatch, pendingTasks]);
 
-  const handleDismiss = (taskId) => {
+  const handleDismiss = useCallback((taskId) => {
     setPendingTasks(prev => prev.filter(t => t._id !== taskId));
     if (pendingTasks.length <= 1) {
       setShowModal(false);
     }
-  };
+  }, [pendingTasks.length]);
 
-  const handleDismissAll = () => {
+  const handleDismissAll = useCallback(() => {
     setPendingTasks([]);
     setShowModal(false);
-  };
+  }, []);
 
   if (pendingTasks.length === 0) return null;
 
@@ -288,6 +289,8 @@ const SmartCarryOver = () => {
       )}
     </AnimatePresence>
   );
-};
+});
+
+SmartCarryOver.displayName = 'SmartCarryOver';
 
 export default SmartCarryOver;

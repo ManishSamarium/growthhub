@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, lazy, Suspense } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -15,10 +15,20 @@ import {
 } from 'react-icons/fi';
 import { toggleTheme, toggleSidebar, setActiveView } from '../store/uiSlice';
 import { fetchOverdueTasks } from '../store/taskSlice';
-import TaskView from './TaskView';
-import JournalView from './JournalView';
-import AnalyticsView from './AnalyticsView';
-import SmartCarryOver from './SmartCarryOver';
+
+// Lazy load components for better performance
+const TaskView = lazy(() => import('./TaskView'));
+const JournalView = lazy(() => import('./JournalView'));
+const AnalyticsView = lazy(() => import('./AnalyticsView'));
+const SmartCarryOver = lazy(() => import('./SmartCarryOver'));
+const Footer = lazy(() => import('./Footer'));
+
+// Loading component
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center h-64">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+  </div>
+);
 
 const Dashboard = () => {
   const dispatch = useDispatch();
@@ -48,30 +58,46 @@ const Dashboard = () => {
     }
   }, [theme]);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/login');
-  };
+  }, [navigate]);
 
-  const menuItems = [
+  const menuItems = useMemo(() => [
     { id: 'tasks', label: 'Tasks', icon: FiCheckSquare },
     { id: 'journal', label: 'Journal', icon: FiBookOpen },
     { id: 'analytics', label: 'Analytics', icon: FiBarChart2 },
-  ];
+  ], []);
 
-  const renderView = () => {
+  const renderView = useMemo(() => {
     switch (activeView) {
       case 'tasks':
-        return <TaskView />;
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <TaskView />
+          </Suspense>
+        );
       case 'journal':
-        return <JournalView />;
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <JournalView />
+          </Suspense>
+        );
       case 'analytics':
-        return <AnalyticsView />;
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <AnalyticsView />
+          </Suspense>
+        );
       default:
-        return <TaskView />;
+        return (
+          <Suspense fallback={<LoadingSpinner />}>
+            <TaskView />
+          </Suspense>
+        );
     }
-  };
+  }, [activeView]);
 
   return (
     <div className={`min-h-screen ${theme === 'dark' ? 'dark bg-gray-900' : 'bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50'}`}>
@@ -135,20 +161,7 @@ const Dashboard = () => {
 
             {/* Theme Toggle & Logout */}
             <div className="absolute bottom-6 left-4 right-4 space-y-3">
-              {/* <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => { if (theme !== 'dark') dispatch(toggleTheme()); }}
-                disabled={theme === 'dark'}
-                className={`w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                  theme === 'dark'
-                    ? 'bg-gray-700 text-gray-100 opacity-70 cursor-default'
-                    : 'bg-white/70 text-gray-900 hover:bg-white font-semibold'
-                }`}
-              >
-                {theme === 'dark' ? <FiSun className="w-5 h-5" /> : <FiMoon className="w-5 h-5" />}
-                <span className="font-medium">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
-              </motion.button> */}
+              
 
               <motion.button
                 whileHover={{ scale: 1.02 }}
@@ -202,7 +215,7 @@ const Dashboard = () => {
         </header>
 
         {/* Content Area */}
-        <main className="p-6">
+        <main className="p-6 min-h-screen">
           <motion.div
             key={activeView}
             initial={{ opacity: 0, y: 20 }}
@@ -210,13 +223,20 @@ const Dashboard = () => {
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
           >
-            {renderView()}
+            {renderView}
           </motion.div>
         </main>
+
+        {/* Footer */}
+        <Suspense fallback={null}>
+          <Footer />
+        </Suspense>
       </div>
 
       {/* Smart Carry Over Modal */}
-      <SmartCarryOver />
+      <Suspense fallback={null}>
+        <SmartCarryOver />
+      </Suspense>
     </div>
   );
 };

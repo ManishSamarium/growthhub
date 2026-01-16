@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { motion } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
@@ -15,6 +15,94 @@ import {
 } from '../store/taskSlice';
 import { addNotification } from '../store/uiSlice';
 
+// Memoized Task Item Component
+const TaskItem = React.memo(({ 
+  task, 
+  index, 
+  theme, 
+  onToggleComplete, 
+  onDelete,
+  priorityColors,
+  categoryColors 
+}) => {
+  return (
+    <Draggable key={task._id} draggableId={task._id} index={index}>
+      {(provided, snapshot) => (
+        <motion.div
+          ref={provided.innerRef}
+          {...provided.draggableProps}
+          {...provided.dragHandleProps}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`rounded-xl p-5 shadow-lg transition-all ${
+            snapshot.isDragging
+              ? 'shadow-2xl scale-105'
+              : ''
+          } ${
+            theme === 'dark'
+              ? 'bg-gray-800/70 backdrop-blur-xl border border-gray-700'
+              : 'bg-white/80 backdrop-blur-xl border border-white/20'
+          }`}
+        >
+          <div className="flex items-start gap-4">
+            <input
+              type="checkbox"
+              checked={task.completed}
+              onChange={() => onToggleComplete(task)}
+              className="w-6 h-6 mt-1 rounded-lg accent-purple-500 cursor-pointer"
+            />
+
+            <div className="flex-1">
+              <p
+                className={`text-lg mb-2 font-medium ${
+                  task.completed
+                    ? 'line-through text-gray-500 dark:text-gray-500'
+                    : 'text-gray-900 dark:text-gray-100'
+                }`}
+              >
+                {task.text}
+              </p>
+
+              <div className="flex flex-wrap gap-2 items-center">
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-semibold ${priorityColors[task.priority]}`}
+                >
+                  {task.priority}
+                </span>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-semibold ${categoryColors[task.category]}`}
+                >
+                  {task.category}
+                </span>
+                {task.dueDate && (
+                  <span className="flex items-center gap-1 text-xs text-gray-800 dark:text-gray-300 font-medium">
+                    <FiCalendar className="w-3 h-3" />
+                    {format(new Date(task.dueDate), 'MMM dd, yyyy')}
+                  </span>
+                )}
+                {task.isCarriedOver && (
+                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+                    Carried Over
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={() => onDelete(task._id)}
+              className="p-2 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition-all"
+            >
+              <FiTrash2 className="w-5 h-5" />
+            </button>
+          </div>
+        </motion.div>
+      )}
+    </Draggable>
+  );
+});
+
+TaskItem.displayName = 'TaskItem';
+
 const TaskView = () => {
   const dispatch = useDispatch();
   const { items: tasks, loading, filters } = useSelector((state) => state.tasks);
@@ -25,11 +113,25 @@ const TaskView = () => {
   const [newTaskCategory, setNewTaskCategory] = useState('other');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
 
+  // Memoize color mappings
+  const priorityColors = useMemo(() => ({
+    low: 'bg-green-100 text-green-900 dark:bg-green-900/30 dark:text-green-300 font-semibold',
+    medium: 'bg-yellow-100 text-yellow-900 dark:bg-yellow-900/30 dark:text-yellow-300 font-semibold',
+    high: 'bg-red-100 text-red-900 dark:bg-red-900/30 dark:text-red-300 font-semibold',
+  }), []);
+
+  const categoryColors = useMemo(() => ({
+    work: 'bg-blue-100 text-blue-900 dark:bg-blue-900/30 dark:text-blue-300 font-semibold',
+    personal: 'bg-purple-100 text-purple-900 dark:bg-purple-900/30 dark:text-purple-300 font-semibold',
+    health: 'bg-pink-100 text-pink-900 dark:bg-pink-900/30 dark:text-pink-300 font-semibold',
+    other: 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-gray-300 font-semibold',
+  }), []);
+
   useEffect(() => {
     dispatch(fetchTasks({ category: filters.category, priority: filters.priority }));
   }, [dispatch, filters.category, filters.priority]);
 
-  const handleCreateTask = async (e) => {
+  const handleCreateTask = useCallback(async (e) => {
     e.preventDefault();
     if (!newTaskText.trim()) return;
 
@@ -62,9 +164,9 @@ const TaskView = () => {
         })
       );
     }
-  };
+  }, [dispatch, newTaskText, newTaskPriority, newTaskCategory, newTaskDueDate]);
 
-  const handleToggleComplete = async (task) => {
+  const handleToggleComplete = useCallback(async (task) => {
     try {
       await dispatch(
         updateTask({
@@ -75,9 +177,9 @@ const TaskView = () => {
     } catch (error) {
       console.error('Failed to update task:', error);
     }
-  };
+  }, [dispatch]);
 
-  const handleDeleteTask = async (id) => {
+  const handleDeleteTask = useCallback(async (id) => {
     if (!confirm('Are you sure you want to delete this task?')) return;
 
     try {
@@ -96,9 +198,9 @@ const TaskView = () => {
         })
       );
     }
-  };
+  }, [dispatch]);
 
-  const handleDragEnd = (result) => {
+  const handleDragEnd = useCallback((result) => {
     if (!result.destination) return;
 
     const reorderedTasks = Array.from(tasks);
@@ -114,27 +216,17 @@ const TaskView = () => {
       order: index,
     }));
     dispatch(reorderTasks(taskUpdates));
-  };
+  }, [tasks, dispatch]);
 
-  const priorityColors = {
-    low: 'bg-green-100 text-green-900 dark:bg-green-900/30 dark:text-green-300 font-semibold',
-    medium: 'bg-yellow-100 text-yellow-900 dark:bg-yellow-900/30 dark:text-yellow-300 font-semibold',
-    high: 'bg-red-100 text-red-900 dark:bg-red-900/30 dark:text-red-300 font-semibold',
-  };
-
-  const categoryColors = {
-    work: 'bg-blue-100 text-blue-900 dark:bg-blue-900/30 dark:text-blue-300 font-semibold',
-    personal: 'bg-purple-100 text-purple-900 dark:bg-purple-900/30 dark:text-purple-300 font-semibold',
-    health: 'bg-pink-100 text-pink-900 dark:bg-pink-900/30 dark:text-pink-300 font-semibold',
-    other: 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-gray-300 font-semibold',
-  };
-
-  const filteredTasks = tasks.filter((task) => {
-    if (filters.searchTerm) {
-      return task.text.toLowerCase().includes(filters.searchTerm.toLowerCase());
-    }
-    return true;
-  });
+  // Memoize filtered tasks to avoid recalculation on every render
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task) => {
+      if (filters.searchTerm) {
+        return task.text.toLowerCase().includes(filters.searchTerm.toLowerCase());
+      }
+      return true;
+    });
+  }, [tasks, filters.searchTerm]);
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -278,78 +370,16 @@ const TaskView = () => {
                 </div>
               ) : (
                 filteredTasks.map((task, index) => (
-                  <Draggable key={task._id} draggableId={task._id} index={index}>
-                    {(provided, snapshot) => (
-                      <motion.div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={`rounded-xl p-5 shadow-lg transition-all ${
-                          snapshot.isDragging
-                            ? 'shadow-2xl scale-105'
-                            : ''
-                        } ${
-                          theme === 'dark'
-                            ? 'bg-gray-800/70 backdrop-blur-xl border border-gray-700'
-                            : 'bg-white/80 backdrop-blur-xl border border-white/20'
-                        }`}
-                      >
-                        <div className="flex items-start gap-4">
-                          <input
-                            type="checkbox"
-                            checked={task.completed}
-                            onChange={() => handleToggleComplete(task)}
-                            className="w-6 h-6 mt-1 rounded-lg accent-purple-500 cursor-pointer"
-                          />
-
-                          <div className="flex-1">
-                            <p
-                              className={`text-lg mb-2 font-medium ${
-                                task.completed
-                                  ? 'line-through text-gray-500 dark:text-gray-500'
-                                  : 'text-gray-900 dark:text-gray-100'
-                              }`}
-                            >
-                              {task.text}
-                            </p>
-
-                            <div className="flex flex-wrap gap-2 items-center">
-                              <span
-                                className={`px-3 py-1 rounded-full text-xs font-semibold ${priorityColors[task.priority]}`}
-                              >
-                                {task.priority}
-                              </span>
-                              <span
-                                className={`px-3 py-1 rounded-full text-xs font-semibold ${categoryColors[task.category]}`}
-                              >
-                                {task.category}
-                              </span>
-                              {task.dueDate && (
-                                <span className="flex items-center gap-1 text-xs text-gray-800 dark:text-gray-300 font-medium">
-                                  <FiCalendar className="w-3 h-3" />
-                                  {format(new Date(task.dueDate), 'MMM dd, yyyy')}
-                                </span>
-                              )}
-                              {task.isCarriedOver && (
-                                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
-                                  Carried Over
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          <button
-                            onClick={() => handleDeleteTask(task._id)}
-                            className="p-2 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition-all"
-                          >
-                            <FiTrash2 className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </Draggable>
+                  <TaskItem
+                    key={task._id}
+                    task={task}
+                    index={index}
+                    theme={theme}
+                    onToggleComplete={handleToggleComplete}
+                    onDelete={handleDeleteTask}
+                    priorityColors={priorityColors}
+                    categoryColors={categoryColors}
+                  />
                 ))
               )}
               {provided.placeholder}

@@ -1,6 +1,26 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from '../api/axios';
 
+// Debounce utility
+let debounceTimers = {};
+const debounce = (key, fn, delay = 500) => {
+  return (...args) => {
+    if (debounceTimers[key]) {
+      clearTimeout(debounceTimers[key]);
+    }
+    return new Promise((resolve, reject) => {
+      debounceTimers[key] = setTimeout(async () => {
+        try {
+          const result = await fn(...args);
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      }, delay);
+    });
+  };
+};
+
 // Async thunks
 export const fetchTasks = createAsyncThunk(
   'tasks/fetchTasks',
@@ -93,10 +113,10 @@ export const reorderTasks = createAsyncThunk(
   'tasks/reorderTasks',
   async (tasks, { rejectWithValue }) => {
     try {
-      await axios.post(
-        `/todo/reorder`,
-        { tasks }
-      );
+      // Debounce reorder requests to avoid spamming the server
+      await debounce('reorder', async () => {
+        await axios.post(`/todo/reorder`, { tasks });
+      }, 1000)();
       return tasks;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message);

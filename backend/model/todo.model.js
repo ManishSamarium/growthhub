@@ -52,5 +52,10 @@ const todoSchema = new mongoose.Schema({
     timestamps: true
 })
 
+// Add indexes for better query performance
+todoSchema.index({ userId: 1, completed: 1, dueDate: 1 });
+todoSchema.index({ userId: 1, createdAt: -1 });
+todoSchema.index({ userId: 1, order: 1 });
+
 const Todo = mongoose.model('Todo', todoSchema);
 export default Todo;

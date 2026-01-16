@@ -25,6 +25,8 @@ export const getTodos = async (req, res) => {
     try {
         const { category, priority } = req.query;
         const query = { userId: req.userId };
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
         if (category && category !== 'all') {
             query.category = category;
@@ -33,8 +35,31 @@ export const getTodos = async (req, res) => {
             query.priority = priority;
         }
 
-        const todos = await Todo.find(query).sort({ order: 1, createdAt: -1 });
-        res.status(200).json(todos);
+        // Fetch all tasks matching filters
+        const todos = await Todo.find(query)
+            .sort({ order: 1, createdAt: -1 })
+            .lean(); // Use lean() for better performance
+        
+        // Filter logic:
+        // 1. Show all uncompleted tasks regardless of date
+        // 2. Show completed tasks only if their dueDate hasn't passed yet
+        // 3. Hide completed tasks if their dueDate has passed or if no dueDate exists
+        const filteredTodos = todos.filter(task => {
+            if (!task.completed) {
+                // Always show uncompleted tasks
+                return true;
+            }
+            // For completed tasks, only show if dueDate exists and hasn't passed
+            if (task.dueDate) {
+                const taskDueDate = new Date(task.dueDate);
+                taskDueDate.setHours(0, 0, 0, 0);
+                return taskDueDate >= today;
+            }
+            // Hide completed tasks without dueDate
+            return false;
+        });
+            
+        res.status(200).json(filteredTodos);
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: "error occured in fetching todos" });
@@ -86,12 +111,13 @@ export const getOverdueTasks = async (req, res) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
+        // Only fetch uncompleted overdue tasks
         const overdueTasks = await Todo.find({
             userId,
             completed: false,
             dueDate: { $lt: today },
             isCarriedOver: false
-        });
+        }).lean();
 
         res.status(200).json(overdueTasks);
     } catch (error) {
@@ -157,7 +183,7 @@ export const getTaskAnalytics = async (req, res) => {
         const tasks = await Todo.find({
             userId,
             createdAt: { $gte: startDate }
-        });
+        }).lean();
 
         // Calculate analytics
         const totalTasks = tasks.length;
